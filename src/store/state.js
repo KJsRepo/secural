@@ -42,7 +42,7 @@ export default function () {
   return {
     keys: LocalStorage.getItem('keys') || {}, // {priv, pub }
 
-    relays, // [url, read, write]
+    relays, // [url, filters]
     following: [], // [ pubkeys... ]
     homeFeedNotes: [],
 

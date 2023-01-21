@@ -45,7 +45,7 @@
       <div class="text-lg p-4">Relays</div>
       <q-list class="mb-3">
         <q-item
-          v-for="([url, r, w], idx) in changedRelays || $store.state.relays"
+          v-for="([url, readRules, writeRules], idx) in changedRelays || $store.state.relays"
           :key="url"
         >
           <q-item-section class="opacity-75">
@@ -59,7 +59,7 @@
                 :disable="!$store.getters.canSignEventsAutomatically"
                 @click="removeRelay(url, idx)"
               />
-              {{ url }}
+              {{ url }} | {{ readRules }} | {{  writeRules }}
               <q-btn
                 color="primary"
                 size="sm"
@@ -72,32 +72,6 @@
               />
             </div>
           </q-item-section>
-          <q-item-section side>
-            <div class="flex-inline">
-              <span
-                class="cursor-pointer tracking-wide"
-                :class="{'font-bold': r == '', 'text-secondary': r == ''}"
-                @click="
-                  $store.getters.canSignEventsAutomatically
-                    ? setRelay(idx, 1 /* read is idx 1 */, r == '' ? '!' : '')
-                    : null
-                "
-              >
-                read
-              </span>
-              <span
-                class="cursor-pointer tracking-wide"
-                :class="{'font-bold': w == '', 'text-secondary': w == ''}"
-                @click="
-                  $store.getters.canSignEventsAutomatically
-                    ? setRelay(idx, 2 /* write is idx 2 */, w == '' ? '!' : '')
-                    : null
-                "
-              >
-                write
-              </span>
-            </div>
-          </q-item-section>
         </q-item>
       </q-list>
       <q-form @submit="addRelay">
@@ -108,7 +82,7 @@
           label="Add a relay"
           :disable="!$store.getters.canSignEventsAutomatically"
         >
-          <template #append>
+        <template #append>
             <q-btn
               label="Add"
               type="submit"
@@ -116,8 +90,24 @@
               class="ml-3"
               @click="addRelay"
             />
-          </template>
-        </q-input>
+        </template>
+      </q-input>
+        <q-input
+          v-model="readRules"
+          class="mx-3"
+          filled
+          label="Read Rules"
+          :disable="!$store.getters.canSignEventsAutomatically"
+        >
+      </q-input>
+        <q-input
+          v-model="writeRules"
+          class="mx-3"
+          filled
+          label="Write Rules"
+          :disable="!$store.getters.canSignEventsAutomatically"
+        >
+      </q-input>
       </q-form>
       <q-form class="mx-3 my-3">
         <q-btn
@@ -266,7 +256,7 @@ export default {
     addRelay() {
       this.changedRelays =
         this.changedRelays || this.$store.state.relays.concat([])
-      this.changedRelays.push([normalizeRelayURL(this.addingRelay), '', ''])
+      this.changedRelays.push([normalizeRelayURL(this.addingRelay), this.readRules, this.writeRules])
       this.addingRelay = ''
     },
     removeRelay(url, idx) {

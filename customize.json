@@ -1,12 +1,12 @@
 {
-  "name": "branle",
+  "name": "secural",
   "icon": "/bird.png",
   "colors": {
-    "primary": "#2262ba",
-    "secondary": "#E64A19",
-    "accent": "#0097A7",
+    "primary": "#4432ba",
+    "secondary": "#d65A19",
+    "accent": "#0397A7",
     "positive": "#21ba45",
-    "negative": "#c10015",
+    "negative": "#c73015",
     "info": "#64DD17",
     "warning": "#BD6E00"
   },
