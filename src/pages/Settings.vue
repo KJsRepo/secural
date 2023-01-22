@@ -106,7 +106,7 @@
                 size="sm"
                 @click="removeRelay(url)"
               />
-              {{ url }}
+              {{ url }} | {{ relays[url].readRules }} | {{  relays[url].writeRules }}
           </div>
           <div class="flex no-wrap items-center" style='gap: .6rem;'>
               <q-toggle
@@ -132,7 +132,12 @@
       </q-list>
       <q-form v-if='editingRelays' class='q-py-xs' @submit="addRelay">
           <div class='flex row no-wrap q-mx-sm q-mt-sm' id='new-relay-input'>
-            <q-input v-model='newRelay' placeholder='add a relay...' autofocus class='full-width' input-style='padding: 0;' @keypress.enter='addRelay' dense borderless/>
+            <q-input v-model='newRelay' placeholder='add a relay...' autofocus class='full-width' input-style='padding: 0;' @keypress.enter='addRelay' borderless>
+            </q-input><br />
+            <q-input v-model="readRules" filled label="Read Rules" class='full-width' :disable="!$store.getters.canSignEventsAutomatically">
+            </q-input>
+            <q-input v-model="writeRules" filled label="Write Rules" class='full-width' :disable="!$store.getters.canSignEventsAutomatically">
+            </q-input>
             <q-btn icon='add' color='positive' size='sm' flat dense @click.stop='addRelay'/>
           </div>
         <BaseSelectMultiple>
@@ -415,7 +420,7 @@ export default {
       this.editingMetadata = false
     },
     addRelay() {
-      if (this.newRelay && this.newRelay.length) this.relays[this.newRelay] = { read: true, write: true }
+      if (this.newRelay && this.newRelay.length) this.relays[this.newRelay] = { read: true, write: true, readRules: this.readRules, writeRules: this.writeRules }
       this.newRelay = ''
     },
     removeRelay(url) {
