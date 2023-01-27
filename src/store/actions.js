@@ -137,13 +137,31 @@ export async function restartMainSubscription(store) {
           LIMIT 1
         `)
         if (result.length && event.created_at < result[0].created_at) return
-        let relays = JSON.parse(event.content)
-        store.commit('setRelays', relays)
 
         let follows = event.tags
           .filter(([t, v]) => t === 'p' && v)
           .map(([_, v]) => v)
         store.commit('setFollows', follows)
+        store.dispatch('restartMainSubscription')
+      } else if (event.kind === 0) {
+        store.dispatch('handleAddingProfileEventToCache', event)
+      }
+      if (event.kind === 10001) {
+        let result = await dbQuery(`
+          SELECT json_extract(event,'$.created_at') created_at
+          FROM nostr
+          WHERE json_extract(event,'$.kind') = 10001 AND
+            json_extract(event,'$.pubkey') = '${store.state.keys.pub}'
+          LIMIT 1
+        `)
+        if (result.length && event.created_at < result[0].created_at) return
+        let relays = JSON.parse(event.content)
+        let mappedRelays = {}
+        for (let mapRelay in relays) {
+          mappedRelays[relays[mapRelay].url] = {read: relays[mapRelay].read, write: relays[mapRelay].write, readRules: relays[mapRelay].readRules, writeRules: relays[mapRelay].writeRules}
+        }
+        store.commit('setRelays', relays)
+
         store.dispatch('restartMainSubscription')
       } else if (event.kind === 0) {
         store.dispatch('handleAddingProfileEventToCache', event)
@@ -245,27 +263,64 @@ export async function publishContactList(store) {
       pubkey: store.state.keys.pub,
       created_at: Math.floor(Date.now() / 1000),
       kind: 3,
-      tags: newTags,
-      content: JSON.stringify(store.state.relays)
+      tags: newTags
     }
 
     let event = await signAsynchronously(unpublishedEvent, store)
     let publishResult = await publish(event)
-    if (!publishResult) throw new Error('could not publish updated list of followed keys and relays')
+    if (!publishResult) throw new Error('could not publish updated list of followed keys')
     store.dispatch('addEvent', {event})
 
+    //,
+    //content: JSON.stringify(store.state.relays)
+    //  Create a kind 10001 event to store relays
+
+    let newRelays = JSON.parse(JSON.stringify(store.state.relays))
+    let content = []
+
+    for (let newRelay in newRelays) {
+      content.push({
+        'url': newRelay,
+        'rules': {
+          'read': newRelays[newRelay].readRules,
+          'write': newRelays[newRelay].writeRules,
+          'readFlag': newRelays[newRelay].read,
+          'writeFlag': newRelays[newRelay].write}})
+    }
+
+    let relayListEvent = {
+      pubkey: store.state.keys.pub,
+      created_at: Math.floor(Date.now() / 1000),
+      kind: 10001,
+      content: JSON.stringify(content),
+      tags: []
+    }
+
+    let relayEvent = await signAsynchronously(relayListEvent, store)
+    let publishRelayResult = await publish(relayEvent)
+    if (!publishRelayResult) throw new Error('could not publish updated list of relays')
+    store.dispatch('addEvent', {relayEvent})
+
     let relays, follows
-    relays = JSON.parse(event.content)
     follows = event.tags
       .filter(([t, v]) => t === 'p' && v)
       .map(([_, v]) => v)
 
     // update store state
     store.commit('setFollows', follows)
-    store.commit('setRelays', relays)
-    setRelays(relays)
 
-    await store.dispatch('addEvent', {event})
+    relays = JSON.parse(relayEvent.content)
+    let mappedRelays = {}
+    for (let mapRelay in relays) {
+      mappedRelays[relays[mapRelay].url] = {
+        read: relays[mapRelay].readFlag,
+        write: relays[mapRelay].writeFlag,
+        readRules: relays[mapRelay].rules.read,
+        writeRules: relays[mapRelay].rules.write}
+    }
+
+    store.commit('setRelays', mappedRelays)
+    setRelays(mappedRelays)
 
     Notify.create({
       message: 'updated and published list of followed keys and relays.',

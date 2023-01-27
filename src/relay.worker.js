@@ -132,7 +132,7 @@ function calcFilter(subName) {
           }
       }
     })
-  console.log('filter', subName, filter)
+
   return filter
 }
 
@@ -268,11 +268,11 @@ const methods = {
   setRelays(newRelays) {
     // lastSync = Math.max(userLastSync, 0)
     for (let url in newRelays) {
-      if (!relays[url]) pool.addRelay(url, newRelays[url])
-      else if (relays[url].read !== newRelays[url].read || relays[url].write !== newRelays[url].write) {
+      if (!relays[url]) {
+        pool.addRelay(url, newRelays[url], {read: newRelays[url].readRules, write: newRelays[url].writeRules})
+      } else if (relays[url].read !== newRelays[url].read || relays[url].write !== newRelays[url].write) {
         pool.removeRelay(url)
-        pool.addRelay(url, newRelays[url])
-        console.log(url, newRelays[url])
+        pool.addRelay(url, newRelays[url], {read: newRelays[url].readRules, write: newRelays[url].writeRules})
       }
     }
     for (let url in relays) {
@@ -306,6 +306,11 @@ self.onmessage = handleMessage
 
 function handleMessage(ev) {
   let { name, args, id, cancel, sub } = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data
+  console.log('  ')
+  console.log('----- EVENT DATA in handleMessaage in relay.worker.js -------------')
+  console.log(ev.data)
+  console.log('-----  END EVENT DATA ---------------------------------------------')
+  console.log('  ')
   if (ev.ports.length && name === 'setPort') {
     dbWorkerPort = ev.ports[0]
     return
